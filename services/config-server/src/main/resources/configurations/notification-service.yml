@@ -1,0 +1,102 @@
+server:
+  port: 8040
+
+spring:
+  data:
+    mongodb:
+      username: kagami
+      password: kagami
+      host: mongodb
+      port: 27017
+      database: notification-db
+      authentication-database: admin
+
+  kafka:
+    listener:
+      # This configures the default error handler for all @KafkaListener methods
+      common-error-handler:
+        enabled: true
+        # Specifies that the DLT should be used after retries are exhausted
+        dlt-enabled: true 
+        # Defines the retry behavior
+        back-off:
+          # Start with a 1-second delay
+          initial-interval: 1000 
+          # Double the delay for each subsequent retry
+          multiplier: 2.0
+          # Set a maximum delay of 10 seconds
+          max-interval: 10000
+        # Total attempts = 1 initial + 3 retries
+        max-attempts: 4 
+        # Specify exceptions that should NOT be retried (e.g., bad data)
+        not-retryable-exceptions:
+          - org.springframework.messaging.converter.MessageConversionException
+          - java.lang.IllegalArgumentException
+      ack-mode: RECORD
+      type: SINGLE
+      dead-letter-publishing:
+        enabled: true
+        topic-suffix: .DLT
+        delimiter: ""
+
+    consumer:
+      bootstrap-servers: kafka:29092
+      group-id: orderNotificationGroup
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        schema.registry.url: http://schema-registry:8082
+        specific.avro.reader: true
+
+  mail:
+    host: mailhog
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: kagami
+    password: kagami
+    exchanges:
+      orders-exchange: "orders.exchange"
+      orders-exchange.dlx: "orders.exchange.dlx"
+    queues:
+      # This service only cares about its own queue
+      order-created-queue: "orders.created.queue"
+      order-created-queue.dlq: "orders.created.queue.dlq"
+    routing-keys:
+      # This key is needed to bind the queue to the exchange
+      order-created-key: "order.created"
+      order-created-key.dlx: "order.created.dlx"
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          max-attempts: 5 
+          initial-interval: 2000ms 
+          multiplier: 2.0 
+          max-interval: 10000ms 
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env
+  endpoint:
+    health:
+      show-details: always
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+  instance:
+    prefer-ip-address: true

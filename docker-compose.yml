@@ -1,0 +1,301 @@
+services:
+  postgresql:
+    container_name: postgres_db
+    image: postgres:14
+    environment:
+      POSTGRES_USER: kagami
+      POSTGRES_PASSWORD: kagami
+      POSTGRES_DB: order
+    volumes:
+      - postgres_db_data:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: ms_pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  mongodb:
+    container_name: mongo_db
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: kagami
+      MONGO_INITDB_ROOT_PASSWORD: kagami
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  mongo-express:
+    container_name: mongo_express
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=kagami
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=kagami
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    ports:
+      - 8081:8081
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0 # Confluent Platform Version 7.5.0 = Apache Kafka Core Version 3.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    networks:
+      - microservices-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0 # Confluent Platform Version 7.5.0 = Apache Kafka Core Version 3.5.0
+    container_name: ms_kafka
+    ports:
+      - "9092:9092" # host access
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    networks:
+      - microservices-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080" 
+    networks:
+      - microservices-net
+    depends_on:
+      - kafka
+      - zookeeper
+    environment:
+      # This is the name of your Kafka cluster as it appears in the UI
+      KAFKA_CLUSTERS_0_NAME: local-cluster 
+      # The UI uses the internal Docker network name and port to connect
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092 
+    restart: unless-stopped
+    
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    ports:
+      - "8082:8082"
+    depends_on:
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092' # Point to your Kafka broker
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8082
+    networks:
+      - microservices-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq  
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: kagami
+      RABBITMQ_DEFAULT_PASS: kagami
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq/
+      - rabbitmq-log:/var/log/rabbitmq
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  config-server:
+    build:
+      context: ./services/config-server
+    container_name: config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+    ports:
+      - "8888:8888"
+    networks:
+      - microservices-net
+    depends_on:
+      - postgresql
+      - mongodb
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discovery-service:
+    build:
+      context: ./services/discovery-service
+    container_name: discovery-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-net
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    container_name: api-gateway
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    ports:
+      - "8222:8222"
+    networks:
+      - microservices-net
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+
+  order-service:
+    build:
+      context: ./services/order-service
+    container_name: order-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/order
+      SPRING_DATASOURCE_USERNAME: kagami
+      SPRING_DATASOURCE_PASSWORD: kagami
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # # Max time to wait for initial broker connection metadata to be returned
+      # SPRING_KAFKA_PRODUCER_PROPERTIES_METADATA_MAX_AGE_MS: 30000 
+      # # Maximum time the client will block waiting for a connection (20 seconds)
+      # SPRING_KAFKA_PRODUCER_PROPERTIES_MAX_BLOCK_MS: 20000 
+      # # Request timeout (30 seconds)
+      # SPRING_KAFKA_PRODUCER_PROPERTIES_REQUEST_TIMEOUT_MS: 30000
+      # # Time to wait before giving up on a TCP connection (15 seconds)
+      # SPRING_KAFKA_PRODUCER_PROPERTIES_RECONNECT_BACKOFF_MAX_MS: 15000
+      # # Time to wait between connection attempts
+      # SPRING_KAFKA_PRODUCER_PROPERTIES_RECONNECT_BACKOFF_MS: 500
+    ports:
+      - "8070:8070"
+    networks:
+      - microservices-net
+    depends_on:
+      postgresql:
+        condition: service_started
+      kafka:
+        condition: service_started
+      schema-registry:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+
+  notification-service:
+    build: 
+      context: ./services/notification-service
+    container_name: notification-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+      SPRING_DATA_MONGODB_URI: mongodb://kagami:kagami@mongodb:27017/notification?authSource=admin
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    ports:
+      - "8040:8040"
+    networks:
+      - microservices-net
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka:
+        condition: service_started
+      schema-registry:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  customer-service:
+    build: 
+      context: ./services/customer-service
+    container_name: customer-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+      SPRING_DATA_MONGODB_URI: mongodb://kagami:kagami@mongodb:27017/customer?authSource=admin
+    ports:
+      - "8090:8090"
+    networks:
+      - microservices-net
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"   # SMTP server
+      - "8025:8025"   # Web UI
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres_db_data:
+  pgadmin:
+  mongodb_data:
+  rabbitmq-data:
+  rabbitmq-log:

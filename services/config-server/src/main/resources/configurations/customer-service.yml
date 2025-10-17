@@ -1,0 +1,12 @@
+server:
+  port: 8090
+
+spring:
+  data:
+    mongodb:
+      username: kagami
+      password: kagami
+      host: mongodb
+      port: 27017
+      database: customer-db
+      authentication-database: admin

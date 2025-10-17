@@ -1,0 +1,57 @@
+server:
+  port: 8070
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgresql:5432/order
+    username: kagami
+    password: kagami
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    producer:
+      bootstrap-servers: kafka:29092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://schema-registry:8082
+        auto.register.schemas: true
+
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: kagami
+    password: kagami
+    exchanges:
+      orders-exchange: "orders.exchange"
+    routing-keys:
+      order-created-key: "order.created"
+      order-shipped-key: "order.shipped"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  
+application:
+  config:
+    customer-url: http://api-gateway:8222/api/v1/customers
+    payment-url: http://api-gateway:8222/api/v1/payments
+    product-url: http://api-gateway:8222/api/v1/products
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+  instance:
+    prefer-ip-address: true
