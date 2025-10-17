@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://postgresql:5432/order
+    url: jdbc:postgresql://postgresql:5432/order-service
     username: kagami
     password: kagami
 

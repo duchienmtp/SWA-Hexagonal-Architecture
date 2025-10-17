@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: kagami
       POSTGRES_PASSWORD: kagami
-      POSTGRES_DB: order
+      POSTGRES_DB: order-service
     volumes:
       - postgres_db_data:/data/postgres
     ports:
@@ -200,7 +200,7 @@ services:
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/order
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/order-service
       SPRING_DATASOURCE_USERNAME: kagami
       SPRING_DATASOURCE_PASSWORD: kagami
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092

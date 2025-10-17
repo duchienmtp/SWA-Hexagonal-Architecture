@@ -28,12 +28,10 @@ Before you begin, make sure you have the following installed:
 The entire application stack is managed by Docker Compose.
 
 **Start the Docker Containers**:
-    Once the build is complete, start all services using Docker Compose:
-    ```bash
-    docker-compose up --build
-    ```
-    * The `--build` flag ensures that Docker rebuilds the images with your latest code.
-    * To run in the background, use `docker-compose up -d --build`.
+Once the build is complete, start all services using Docker Compose: `docker compose up -d --build`.
+
+* The `--build` flag ensures that Docker rebuilds the images with your latest code.
+* To run in the background, use `docker compose up -d --build`.
 
 ---
 ## 3. Accessing Services
@@ -55,7 +53,7 @@ The databases are automatically created by Docker Compose, but you need to conne
 
 ### PostgreSQL (pgAdmin)
 
-The `order-service` uses PostgreSQL. The `order` database is created automatically.
+The `order-service` uses PostgreSQL. The `order-service` database will be created automatically when you create a server with the appropriate setup below.
 
 **How to connect in pgAdmin:**
 1.  Open pgAdmin at `http://localhost:5050`.
@@ -63,23 +61,22 @@ The `order-service` uses PostgreSQL. The `order` database is created automatical
     * **Email**: `admin@admin.com`
     * **Password**: `admin`
 3.  Right-click on **Servers** -> **Create** -> **Server...**.
-4.  In the **General** tab, give it a name (e.g., `local-docker-postgres`).
+4.  In the **General** tab, give it a name (e.g., `SWA_Server`).
 5.  Switch to the **Connection** tab and enter the following details:
     * **Host name/address**: `postgresql` (This is the service name from `docker-compose.yml`).
     * **Port**: `5432`
-    * **Maintenance database**: `order`
     * **Username**: `kagami`
     * **Password**: `kagami`
-6.  Click **Save**. You can now browse the `order` database and its tables.
+6.  Click **Save**. You can now browse the `order-service` database and its tables.
 
 ### MongoDB (Mongo Express)
 
-The `customer-service` and `notification-service` use MongoDB.
+The `customer-service` and `notification-service` use MongoDB. The `customer-db` and `notification-db` will be created automatically when there is at least one "Write" operation performed to these database.
 
 **How to access in Mongo Express:**
 1.  Open Mongo Express at `http://localhost:8081`.
 2.  Logging in with username/password: `admin/pass`
-3.  On the left, you will see the databases created by the services, such as `customer` and `notification`. You can click on them to view and manage the collections and documents. If you can't, you have to call some related APIs to trigger insert/update operations. Therefore, the related Database will be created.
+3.  On the left, you will see the databases created by the services, such as `customer` and `notification`. You can click on them to view and manage the collections and documents.
 
 ---
 ## 5. Kafka and Avro Schema
@@ -120,9 +117,20 @@ All API requests should go through the API Gateway, which runs on port 8222. The
 
 **Example: Creating an Order:**
 
-1. **Endpoint:** `POST http://localhost:8222/api/v1/orders/create`
-2. **Headers:** `Content-Type: application/json`
-3. **Body:**
+1. **Endpoint:** `POST http://localhost:8222/api/v1/customers/create` to create a new user if no user available.
+```
+{
+    "customerId": "fa156180-e05d-4c2c-97f5-7a53d0d1b8fd",
+    "fullName": "Nguyen Van A",
+    "email": "john@mail.com",
+    "address": {
+        "street": "St. Blue",
+        "postalCode": "50000",
+        "city": "Sydney"
+    }
+}
+```
+2. **Endpoint:** `POST http://localhost:8222/api/v1/orders/create` to create a new order from the current user.
 ```
 {
     "customerId": "fa156180-e05d-4c2c-97f5-7a53d0d1b8fd",
