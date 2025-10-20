@@ -41,7 +41,7 @@ Once all containers are running, you can access the various UIs and services:
 | Service               | URL                           | Description                                     |
 | --------------------- | ----------------------------- | ----------------------------------------------- |
 | **pgAdmin 4** | `http://localhost:5050`       | UI for managing the PostgreSQL database.        |
-| **Mongo Express** | `http://localhost:8081`       | UI for managing the MongoDB database.           |
+| **Mongo Express** | `http://localhost:8083`       | UI for managing the MongoDB database.           |
 | **Kafka UI** | `http://localhost:8080`       | UI for viewing Kafka topics and messages.       |
 | **MailHog** | `http://localhost:8025`       | Catches and displays emails sent by the app.    |
 | **Eureka Discovery** | `http://localhost:8761`       | Service registry dashboard.                     |
@@ -53,7 +53,7 @@ The databases are automatically created by Docker Compose, but you need to conne
 
 ### PostgreSQL (pgAdmin)
 
-The `order-service` uses PostgreSQL. The `order-service` database will be created automatically when you create a server with the appropriate setup below.
+The `order-service`, `payment-service` and `restaurant-service` uses PostgreSQL. Their databases will be created automatically when you create a server with the appropriate setup below.
 
 **How to connect in pgAdmin:**
 1.  Open pgAdmin at `http://localhost:5050`.
@@ -74,9 +74,9 @@ The `order-service` uses PostgreSQL. The `order-service` database will be create
 The `customer-service` and `notification-service` use MongoDB. The `customer-db` and `notification-db` will be created automatically when there is at least one "Write" operation performed to these database.
 
 **How to access in Mongo Express:**
-1.  Open Mongo Express at `http://localhost:8081`.
+1.  Open Mongo Express at `http://localhost:8083`.
 2.  Logging in with username/password: `admin/pass`
-3.  On the left, you will see the databases created by the services, such as `customer` and `notification`. You can click on them to view and manage the collections and documents.
+3.  On the left, you will see the databases created by the services, such as `customer-db` and `notification-db`. You can click on them to view and manage the collections and documents.
 
 ---
 ## 5. Kafka and Avro Schema
