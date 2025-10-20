@@ -1,0 +1,9 @@
+{
+  "namespace": "com.swa.kafka.avro.model",
+  "type": "record",
+  "name": "CreateUserBalanceEventAvro",
+  "fields": [
+    { "name": "customerId", "type": "string" },
+    { "name": "balance", "type": "string" }
+  ]
+}

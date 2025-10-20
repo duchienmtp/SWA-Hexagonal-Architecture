@@ -38,4 +38,9 @@ public class CustomerRepository implements ICustomerRepository {
         var formattedDomainEntity = customerDataAccessMapper.toCustomer(customerEntity.get());
         return Optional.of(formattedDomainEntity);  
     }
+
+    @Override
+    public void deleteById(String customerId) {
+        customerJpaRepository.deleteById(customerId);
+    }
 }

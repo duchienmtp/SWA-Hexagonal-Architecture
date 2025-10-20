@@ -3,14 +3,13 @@ package com.swa.order_application.handler;
 import com.swa.order_application.dto.*;
 import com.swa.order_application.mapper.OrderDataMapper;
 import com.swa.order_application.ports.input.service.IOrderApplicationService;
+import com.swa.order_application.ports.output.event.IEventPublisher;
 import com.swa.order_application.ports.output.repository.IOrderRepository;
 import com.swa.order_application.ports.output.service.ICustomerFeignService;
 import com.swa.order_domain.entity.*;
 import com.swa.order_domain.exception.OrderDomainException;
 import com.swa.order_domain.service.OrderDomainService;
 import com.swa.order_domain.valueobject.OrderId;
-import com.swa.order_infrastructure.order_messaging.mapper.OrderEventMapper;
-import com.swa.order_infrastructure.order_messaging.producer.OrderProducer;
 import com.swa.order_infrastructure.order_messaging.producer.OrderRabbitMQPublisher;
 
 import lombok.RequiredArgsConstructor;
@@ -27,9 +26,8 @@ public class OrderApplicationService implements IOrderApplicationService {
     private final OrderDataMapper orderDataMapper;
     private final OrderDomainService orderDomainService;
     private final ICustomerFeignService customerClient;
-    private final OrderProducer orderProducer;
-    private final OrderEventMapper orderEventMapper;
     private final OrderRabbitMQPublisher orderRabbitMQPublisher;
+    private final IEventPublisher _eventPublisher;
 
     @Override
     @Transactional
@@ -48,9 +46,9 @@ public class OrderApplicationService implements IOrderApplicationService {
             Order savedOrder = _orderRepository.save(order);
 
             // Kafka
-            orderProducer.sendOrderConfirmation(
-                orderEventMapper.mapToOrderConfirmationEvent(savedOrder, customer)
-            );
+            _eventPublisher.sendOrderConfirmationEvent(savedOrder, customer);
+
+            _eventPublisher.sendOrderPurchaseEvent(savedOrder, customer);
 
             // RabbitMQ
             // orderRabbitMQPublisher.sendOrderConfirmationMessage(

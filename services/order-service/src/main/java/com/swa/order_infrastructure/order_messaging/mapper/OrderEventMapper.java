@@ -9,6 +9,9 @@ import com.swa.order_domain.entity.Customer;
 import com.swa.order_domain.entity.Order;
 import com.swa.order_domain.entity.OrderItem;
 import com.swa.order_domain.event.OrderConfirmationEvent;
+import com.swa.order_domain.event.ProcessPaymentFailedEvent;
+import com.swa.order_domain.valueobject.CustomerId;
+import com.swa.order_domain.valueobject.OrderId;
 
 @Component
 public class OrderEventMapper {
@@ -49,6 +52,14 @@ public class OrderEventMapper {
                 .totalAmount(order.getPrice())
                 .customer(customer)
                 .items(order.getItems())
+                .build();
+    }
+
+    public ProcessPaymentFailedEvent toProcessPaymentFailedEvent(ProcessPaymentFailedEventAvro avro) {
+        return ProcessPaymentFailedEvent.builder()
+                .orderId(OrderId.toOrderId(avro.getOrderId()))
+                .customerId(CustomerId.toCustomerId(avro.getCustomerId()))
+                .message(avro.getMessage())
                 .build();
     }
 }

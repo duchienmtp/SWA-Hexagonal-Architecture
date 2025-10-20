@@ -45,8 +45,8 @@ public class OrderRepository implements IOrderRepository {
         OrderJpaEntity order = orderJpaRepository.findById(orderId.getValue())
         .orElseThrow(() -> new OrderDomainException("Order not found"));
 
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new OrderDomainException("Order cannot be cancelled because it is not in PENDING state");
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new OrderDomainException("Order cannot be cancelled because it is in CANCELLED state");
         }
     
         order.setStatus(OrderStatus.CANCELLED);

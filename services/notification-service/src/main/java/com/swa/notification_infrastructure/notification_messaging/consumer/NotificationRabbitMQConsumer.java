@@ -8,7 +8,7 @@ import com.swa.notification_application.ports.output.service.IEmailService;
 import com.swa.notification_domain.entity.OrderItem;
 import com.swa.notification_domain.event.OrderConfirmationEvent;
 import com.swa.notification_domain.exception.NotificationDomainException;
-import com.swa.notification_infrastructure.notification_dataaccess.repository.INotificationRepository;
+import com.swa.notification_infrastructure.notification_dataaccess.repository.INotificationMongoRepository;
 import com.swa.notification_infrastructure.notification_messaging.mapper.NotificationEventMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class NotificationRabbitMQConsumer {
-    private final INotificationRepository _notificationRepository;
+    private final INotificationMongoRepository _notificationRepository;
     private final IEmailService _emailService;
     private final NotificationEventMapper notificationEventMapper;
     

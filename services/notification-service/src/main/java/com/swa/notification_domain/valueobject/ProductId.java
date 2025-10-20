@@ -18,4 +18,8 @@ public class ProductId {
     public static ProductId of(UUID value) {
         return new ProductId(value);
     }
+
+    public static ProductId toProductId(String value) {
+        return new ProductId(UUID.fromString(value));
+    }
 }

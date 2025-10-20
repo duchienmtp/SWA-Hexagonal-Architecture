@@ -14,4 +14,8 @@ public class TrackingId {
     public static TrackingId of(UUID value) {
         return new TrackingId(value);
     }
+
+    public static TrackingId toTrackingId(String value) {
+        return new TrackingId(UUID.fromString(value));
+    }
 }

@@ -14,9 +14,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CancelOrderCommand {
-    @NotNull(message = "Tracking ID is required")
-    private UUID trackingId;
-
     @NotNull(message = "Order ID is required")
     private UUID orderId;
 

@@ -24,4 +24,7 @@ public class CreateCustomerCommand {
 
     @NotNull(message = "Address is required")
     private CreateStreetAddressDTO address;
+
+    @NotNull(message = "Balance is required")
+    private Double balance;
 }

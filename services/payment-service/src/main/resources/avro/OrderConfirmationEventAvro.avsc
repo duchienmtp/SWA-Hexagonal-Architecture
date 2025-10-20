@@ -1,0 +1,36 @@
+{
+  "namespace": "com.swa.kafka.avro.model",
+  "type": "record",
+  "name": "OrderConfirmationEventAvro",
+  "fields": [
+    { "name": "orderId", "type": "string" },
+    { "name": "totalAmount", "type": "string" },
+    {
+      "name": "customer",
+      "type": {
+        "type": "record",
+        "name": "CustomerAvro",
+        "fields": [
+          { "name": "id", "type": "string" },
+          { "name": "fullName", "type": "string" },
+          { "name": "email", "type": "string" }
+        ]
+      }
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItemAvro",
+          "fields": [
+            { "name": "productId", "type": "string" },
+            { "name": "price", "type": "string" },
+            { "name": "quantity", "type": "int" }
+          ]
+        }
+      }
+    }
+  ]
+}

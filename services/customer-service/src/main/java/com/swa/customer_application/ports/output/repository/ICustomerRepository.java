@@ -10,4 +10,5 @@ public interface ICustomerRepository {
     Customer save(Customer customer);
     List<Customer> findAll();
     Optional<Customer> findById(String customerId);
+    void deleteById(String customerId);
 }

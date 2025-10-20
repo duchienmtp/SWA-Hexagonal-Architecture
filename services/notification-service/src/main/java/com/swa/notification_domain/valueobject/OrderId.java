@@ -18,4 +18,8 @@ public class OrderId {
     public static OrderId of(UUID value) {
         return new OrderId(value);
     }
+
+    public static OrderId toOrderId(String value) {
+        return new OrderId(UUID.fromString(value));
+    }
 }

@@ -10,3 +10,49 @@ spring:
       port: 27017
       database: customer-db
       authentication-database: admin
+  
+  kafka:
+    listener:
+      # This configures the default error handler for all @KafkaListener methods
+      common-error-handler:
+        enabled: true
+        # Specifies that the DLT should be used after retries are exhausted
+        dlt-enabled: true 
+        # Defines the retry behavior
+        back-off:
+          # Start with a 1-second delay
+          initial-interval: 1000 
+          # Double the delay for each subsequent retry
+          multiplier: 2.0
+          # Set a maximum delay of 10 seconds
+          max-interval: 10000
+        # Total attempts = 1 initial + 3 retries
+        max-attempts: 4 
+        # Specify exceptions that should NOT be retried (e.g., bad data)
+        not-retryable-exceptions:
+          - org.springframework.messaging.converter.MessageConversionException
+          - java.lang.IllegalArgumentException
+      ack-mode: RECORD
+      type: SINGLE
+      dead-letter-publishing:
+        enabled: true
+        topic-suffix: .DLT
+        delimiter: ""
+        
+    producer:
+      bootstrap-servers: kafka:29092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://schema-registry:8082
+        auto.register.schemas: true
+
+    consumer:
+      bootstrap-servers: kafka:29092
+      group-id: customer-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        schema.registry.url: http://schema-registry:8082
+        specific.avro.reader: true

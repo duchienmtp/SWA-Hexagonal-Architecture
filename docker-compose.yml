@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: kagami
       POSTGRES_PASSWORD: kagami
-      POSTGRES_DB: order-service
+      POSTGRES_DB: order-service, payment-service, restaurant-service
     volumes:
       - postgres_db_data:/data/postgres
     ports:
@@ -51,7 +51,7 @@ services:
       - ME_CONFIG_MONGODB_ADMINPASSWORD=kagami
       - ME_CONFIG_MONGODB_SERVER=mongodb
     ports:
-      - 8081:8081
+      - 8083:8081
     networks:
       - microservices-net
     restart: unless-stopped
@@ -67,6 +67,7 @@ services:
       - "22181:2181"
     networks:
       - microservices-net
+    restart: unless-stopped
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0 # Confluent Platform Version 7.5.0 = Apache Kafka Core Version 3.5.0
@@ -86,6 +87,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
     networks:
       - microservices-net
+    restart: unless-stopped
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -115,8 +117,14 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092' # Point to your Kafka broker
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8082
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8082/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - microservices-net
+    restart: unless-stopped
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -152,6 +160,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   discovery-service:
     build:
@@ -173,6 +182,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
 
   api-gateway:
     build:
@@ -192,6 +202,7 @@ services:
         condition: service_healthy
       order-service:
         condition: service_started
+    restart: unless-stopped
 
   order-service:
     build:
@@ -204,16 +215,7 @@ services:
       SPRING_DATASOURCE_USERNAME: kagami
       SPRING_DATASOURCE_PASSWORD: kagami
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      # # Max time to wait for initial broker connection metadata to be returned
-      # SPRING_KAFKA_PRODUCER_PROPERTIES_METADATA_MAX_AGE_MS: 30000 
-      # # Maximum time the client will block waiting for a connection (20 seconds)
-      # SPRING_KAFKA_PRODUCER_PROPERTIES_MAX_BLOCK_MS: 20000 
-      # # Request timeout (30 seconds)
-      # SPRING_KAFKA_PRODUCER_PROPERTIES_REQUEST_TIMEOUT_MS: 30000
-      # # Time to wait before giving up on a TCP connection (15 seconds)
-      # SPRING_KAFKA_PRODUCER_PROPERTIES_RECONNECT_BACKOFF_MAX_MS: 15000
-      # # Time to wait between connection attempts
-      # SPRING_KAFKA_PRODUCER_PROPERTIES_RECONNECT_BACKOFF_MS: 500
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
     ports:
       - "8070:8070"
     networks:
@@ -224,11 +226,12 @@ services:
       kafka:
         condition: service_started
       schema-registry:
-        condition: service_started
+        condition: service_healthy
       config-server:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+    restart: unless-stopped
 
   notification-service:
     build: 
@@ -239,6 +242,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
       SPRING_DATA_MONGODB_URI: mongodb://kagami:kagami@mongodb:27017/notification?authSource=admin
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
     ports:
       - "8040:8040"
     networks:
@@ -249,7 +253,7 @@ services:
       kafka:
         condition: service_started
       schema-registry:
-        condition: service_started
+        condition: service_healthy
       config-server:
         condition: service_healthy
       discovery-service:
@@ -264,6 +268,8 @@ services:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
       SPRING_DATA_MONGODB_URI: mongodb://kagami:kagami@mongodb:27017/customer?authSource=admin
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
     ports:
       - "8090:8090"
     networks:
@@ -273,6 +279,66 @@ services:
         condition: service_started
       kafka:
         condition: service_started
+      schema-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+    container_name: payment-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/payment-service
+      SPRING_DATASOURCE_USERNAME: kagami
+      SPRING_DATASOURCE_PASSWORD: kagami
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
+    ports:
+      - "8060:8060"
+    networks:
+      - microservices-net
+    depends_on:
+      postgresql:
+        condition: service_started
+      kafka:
+        condition: service_started
+      schema-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  restaurant-service:
+    build:
+      context: ./services/restaurant-service
+    container_name: restaurant-service
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresql:5432/restaurant-service
+      SPRING_DATASOURCE_USERNAME: kagami
+      SPRING_DATASOURCE_PASSWORD: kagami
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
+    ports:
+      - "8050:8050"
+    networks:
+      - microservices-net
+    depends_on:
+      postgresql:
+        condition: service_started
+      kafka:
+        condition: service_started
+      schema-registry:
+        condition: service_healthy
       config-server:
         condition: service_healthy
       discovery-service:

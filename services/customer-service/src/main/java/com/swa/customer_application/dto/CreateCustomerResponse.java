@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCustomerResponse {
-    private UUID customerId;;
+    private UUID customerId;
     private String message;
     private String status;
 }

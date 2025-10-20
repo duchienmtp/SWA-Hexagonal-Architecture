@@ -13,4 +13,11 @@ public class KafkaOrderTopicConfig {
                 .name("order-topic")
                 .build();
     }
+
+    @Bean
+    public NewTopic orderPurchaseTopic() {
+        return TopicBuilder
+                .name("order-purchase-topic")
+                .build();
+    }
 }

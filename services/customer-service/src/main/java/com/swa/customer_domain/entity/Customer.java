@@ -29,4 +29,5 @@ public class Customer extends AggregateRoot<CustomerId> {
     private String fullName;
     private String email;
     private Address address;
+    private Double balance;
 }

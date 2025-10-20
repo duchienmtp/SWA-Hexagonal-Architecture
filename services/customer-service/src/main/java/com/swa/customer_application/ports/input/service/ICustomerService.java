@@ -12,4 +12,6 @@ public interface ICustomerService {
 
     // UseCase: Find By Id
     QueryCustomerResponse findById(String id);
+
+    void deleteCustomer(String id);
 }

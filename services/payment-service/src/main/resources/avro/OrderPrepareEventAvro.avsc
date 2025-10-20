@@ -1,0 +1,23 @@
+{
+  "namespace": "com.swa.kafka.avro.model",
+  "type": "record",
+  "name": "OrderPrepareEventAvro",
+  "fields": [
+    { "name": "orderId", "type": "string" },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItemAvro",
+          "fields": [
+            { "name": "productId", "type": "string" },
+            { "name": "price", "type": "string" },
+            { "name": "quantity", "type": "int" }
+          ]
+        }
+      }
+    }
+  ]
+}

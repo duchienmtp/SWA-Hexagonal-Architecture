@@ -10,4 +10,8 @@ public class RestaurantId {
     public static RestaurantId of(UUID value) {
         return new RestaurantId(value);
     }
+
+    public static RestaurantId toRestaurantId(String value) {
+        return new RestaurantId(UUID.fromString(value));
+    }
 }
