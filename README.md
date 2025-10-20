@@ -127,10 +127,12 @@ All API requests should go through the API Gateway, which runs on port 8222. The
         "street": "St. Blue",
         "postalCode": "50000",
         "city": "Sydney"
-    }
+    },
+    "balance": 500
 }
 ```
-2. **Endpoint:** `POST http://localhost:8222/api/v1/orders/create` to create a new order from the current user.
+2. **Insert Data** from `restaurant-service.sql` to `restaurant-service` database to create restaurant data.
+3. **Endpoint:** `POST http://localhost:8222/api/v1/orders/create` to create a new order from the current user.
 ```
 {
     "customerId": "fa156180-e05d-4c2c-97f5-7a53d0d1b8fd",
