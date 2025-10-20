@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import com.swa.order_application.ports.output.repository.IOrderRepository;
 import com.swa.order_domain.entity.Order;
+import com.swa.order_domain.event.OrderApprovalEvent;
+import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 import com.swa.order_domain.exception.OrderDomainException;
 import com.swa.order_domain.valueobject.OrderId;
 import com.swa.order_domain.valueobject.OrderStatus;
@@ -52,5 +54,33 @@ public class OrderRepository implements IOrderRepository {
         order.setStatus(OrderStatus.CANCELLED);
         OrderJpaEntity updatedOrder = orderJpaRepository.save(order);
         return mapper.toDomain(updatedOrder);
+    }
+
+    @Override
+    public void cancelOrder(ProcessPaymentFailedEvent event) {
+        OrderJpaEntity order = orderJpaRepository.findById(event.getOrderId().getValue())
+        .orElseThrow(() -> new OrderDomainException("Order not found"));
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new OrderDomainException("Order cannot be cancelled because it is in CANCELLED state");
+        }
+    
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setFailureMessages(event.getMessage());
+        orderJpaRepository.save(order);
+    }
+
+    @Override
+    public void approveOrder(OrderApprovalEvent event) {
+        OrderJpaEntity order = orderJpaRepository.findById(event.getOrderId().getValue())
+        .orElseThrow(() -> new OrderDomainException("Order not found"));
+
+        if (order.getStatus() == OrderStatus.APPROVED) {
+            throw new OrderDomainException("Order cannot be approved because it is in APPROVED state");
+        }
+    
+        order.setStatus(OrderStatus.APPROVED);
+        order.setFailureMessages(null);
+        orderJpaRepository.save(order);
     }
 }

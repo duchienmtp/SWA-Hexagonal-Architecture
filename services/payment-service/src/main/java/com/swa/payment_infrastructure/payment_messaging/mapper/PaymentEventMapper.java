@@ -16,15 +16,18 @@ import com.swa.payment_domain.entity.UserBalance;
 import com.swa.payment_domain.event.OrderConfirmationEvent;
 import com.swa.payment_domain.event.PaymentEvent;
 import com.swa.payment_domain.event.ProcessPaymentFailedEvent;
+import com.swa.payment_domain.valueobject.CustomerId;
 import com.swa.payment_domain.valueobject.Money;
 import com.swa.payment_domain.valueobject.OrderId;
 import com.swa.payment_domain.valueobject.ProductId;
+import com.swa.payment_domain.valueobject.RestaurantId;
 
 @Component
 public class PaymentEventMapper {
     public OrderConfirmationEvent toOrderConfirmationEvent(OrderConfirmationEventAvro orderConfirmationEventAvro) {
         return OrderConfirmationEvent.builder()
                 .orderId(OrderId.toOrderId(orderConfirmationEventAvro.getOrderId()))
+                .restaurantId(RestaurantId.toRestaurantId(orderConfirmationEventAvro.getRestaurantId()))
                 .totalAmount(new Money(new BigDecimal(orderConfirmationEventAvro.getTotalAmount())))
                 .customer(toCustomer(orderConfirmationEventAvro.getCustomer()))
                 .items(orderConfirmationEventAvro.getItems().stream()
@@ -49,35 +52,24 @@ public class PaymentEventMapper {
                 .build();
     }
 
-    public OrderConfirmationEventAvro toOrderConfirmationEventAvro(OrderConfirmationEvent orderConfirmationEvent) {
-        var avroItems = orderConfirmationEvent.getItems().stream()
-                .map(item -> OrderItemAvro.newBuilder()
-                        .setProductId(item.getProductId().getValue().toString())
-                        .setPrice(item.getPrice().getAmount().toString())
-                        .setQuantity(item.getQuantity())
-                        .build())
-                .toList();
-
-        CustomerAvro customerAvro = CustomerAvro.newBuilder()
-                .setId(orderConfirmationEvent.getCustomer().getId())
-                .setFullName(orderConfirmationEvent.getCustomer().getFullName())
-                .setEmail(orderConfirmationEvent.getCustomer().getEmail())
-                .build();
-
-        return OrderConfirmationEventAvro.newBuilder()
-                .setOrderId(orderConfirmationEvent.getOrderId().getValue().toString())
-                .setTotalAmount(orderConfirmationEvent.getTotalAmount().getAmount().toString())
-                .setCustomer(customerAvro)
-                .setItems(avroItems)
+    public OrderItemAvro toOrderItemAvro(OrderItem orderItem) {
+        return OrderItemAvro.newBuilder()
+                .setProductId(orderItem.getProductId().getValue().toString())
+                .setPrice(orderItem.getPrice().getAmount().toString())
+                .setQuantity(orderItem.getQuantity())
                 .build();
     }
 
-    public OrderPrepareEventAvro toOrderPrepareEventAvro(OrderConfirmationEventAvro orderConfirmationEvent,
+    public OrderPrepareEventAvro toOrderPrepareEventAvro(OrderConfirmationEvent orderConfirmationEvent,
             PaymentEvent paymentEvent) {
-        var avroItems = orderConfirmationEvent.getItems();
+        var avroItems = orderConfirmationEvent.getItems().stream()
+                .map(this::toOrderItemAvro)
+                .toList();
 
         return OrderPrepareEventAvro.newBuilder()
-                .setOrderId(orderConfirmationEvent.getOrderId().toString())
+                .setOrderId(orderConfirmationEvent.getOrderId().getValue().toString())
+                .setRestaurantId(orderConfirmationEvent.getRestaurantId().getValue().toString())
+                .setCustomerId(orderConfirmationEvent.getCustomer().getId())
                 .setItems(avroItems)
                 .build();
     }
@@ -97,6 +89,24 @@ public class PaymentEventMapper {
                 .setOrderId(event.getOrderId().getValue().toString())
                 .setCustomerId(event.getCustomerId().getValue().toString())
                 .setMessage(paymentEvent.getMessage())
+                .build();
+    }
+
+    public ProcessPaymentFailedEventAvro toProcessPaymentFailedEventAvro(
+            OrderConfirmationEvent event,
+            PaymentEvent paymentEvent) {
+        return ProcessPaymentFailedEventAvro.newBuilder()
+                .setOrderId(event.getOrderId().getValue().toString())
+                .setCustomerId(event.getCustomer().getId().toString())
+                .setMessage(paymentEvent.getMessage())
+                .build();
+    }
+
+    public ProcessPaymentFailedEvent toProcessPaymentFailedEvent(ProcessPaymentFailedEventAvro eventAvro) {
+        return ProcessPaymentFailedEvent.builder()
+                .orderId(OrderId.toOrderId(eventAvro.getOrderId()))
+                .customerId(CustomerId.toCustomerId(eventAvro.getCustomerId()))
+                .message(eventAvro.getMessage())
                 .build();
     }
 }

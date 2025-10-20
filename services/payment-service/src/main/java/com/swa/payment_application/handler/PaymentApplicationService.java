@@ -17,6 +17,8 @@ import com.swa.payment_domain.valueobject.PaymentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +32,7 @@ public class PaymentApplicationService implements IPaymentApplicationService {
     
     @Override
     @Transactional
-    public void handleOrderConfirmation(OrderConfirmationEvent event) {
+    public void handlePaymentProcess(OrderConfirmationEvent event) {
         PaymentEvent paymentEvent = processPayment(event);
 
         if (paymentEvent.getPaymentStatus() == PaymentStatus.PAYMENT_SUCCESS) {
@@ -44,6 +46,7 @@ public class PaymentApplicationService implements IPaymentApplicationService {
         try {
             CustomerId customerId = CustomerId.toCustomerId(event.getCustomer().getId());
             UserBalance userBalance = _paymentRepository.findUserBalanceById(customerId).orElse(null);
+
             if (userBalance == null) {
                 return new PaymentEvent(PaymentStatus.PAYMENT_FAILED, "User balance with ID: " + customerId + " not found");
             }
@@ -62,7 +65,7 @@ public class PaymentApplicationService implements IPaymentApplicationService {
             return new PaymentEvent(PaymentStatus.PAYMENT_SUCCESS, "Payment processed successfully");
         } catch (Exception e) {
             log.error("Error processing payment for order: {}", event.getOrderId(), e);
-            return new PaymentEvent(PaymentStatus.PAYMENT_FAILED, e.getMessage());
+            return new PaymentEvent(PaymentStatus.PAYMENT_FAILED, "Payment processed failed");
         }
     }
 
@@ -73,7 +76,7 @@ public class PaymentApplicationService implements IPaymentApplicationService {
             log.info("User balance created successfully for customer ID: {}", userBalance.getCustomerId());
         } catch (Exception e) {
             log.error("Error creating user balance for customer ID: {}", userBalance.getCustomerId(), e);
-            PaymentEvent paymentEvent = new PaymentEvent(PaymentStatus.CREATE_USER_BALANCE_FAILED, e.getMessage());
+            PaymentEvent paymentEvent = new PaymentEvent(PaymentStatus.CREATE_USER_BALANCE_FAILED, "Create user balance failed");
             _eventPublisher.publishBalanceCreationFailed(userBalance, paymentEvent);
         }
     }
@@ -89,23 +92,37 @@ public class PaymentApplicationService implements IPaymentApplicationService {
     public PaymentEvent processRefundPayment(ProcessPaymentFailedEvent event) {
         OrderId orderId = event.getOrderId();
         try {
-            UserTransaction transaction = _paymentRepository.findTransactionByOrderId(orderId)
-                    .orElseThrow(() -> new RuntimeException("Transaction not found for order ID: " + orderId));
+            Optional<UserTransaction> userTransactionOptional = _paymentRepository.findTransactionByOrderId(orderId);
 
-            UserBalance userBalance = _paymentRepository.findUserBalanceById(transaction.getCustomerId())
-                    .orElseThrow(() -> new RuntimeException("User balance not found for customer ID: " + transaction.getCustomerId()));
+            if (userTransactionOptional.isEmpty()) {
+                log.error("Transaction not found for order ID: {}", orderId);
+                return new PaymentEvent(PaymentStatus.PAYMENT_REFUNDED, "Transaction not found for order ID: " + orderId);
+            }
 
-            userBalance.getBalance().add(transaction.getAmount());
+            UserTransaction transaction = userTransactionOptional.get();
+
+            Optional<UserBalance> userBalanceOptional = _paymentRepository.findUserBalanceById(transaction.getCustomerId());
+
+            if (userBalanceOptional.isEmpty()) {
+                log.error("User balance not found for customer ID: {}", transaction.getCustomerId());
+                return new PaymentEvent(PaymentStatus.PAYMENT_REFUNDED, "User balance not found for customer ID: " + transaction.getCustomerId());
+            }
+
+            UserBalance userBalance = userBalanceOptional.get();
+
+            Money newBalance = userBalance.getBalance().add(transaction.getAmount());
+            
+            userBalance.setBalance(newBalance);
             transaction.setPaymentStatus(PaymentStatus.PAYMENT_REFUNDED);
 
             _paymentRepository.save(transaction);
             _paymentRepository.save(userBalance);
 
             log.info("Refund processed successfully for order ID: {}", orderId);
-            return new PaymentEvent(PaymentStatus.PAYMENT_REFUNDED, "Refund processed successfully");
+            return new PaymentEvent(PaymentStatus.PAYMENT_REFUNDED, event.getMessage());
         } catch (Exception e) {
             log.error("Error processing refund for order ID: {}", orderId, e);
-            throw new RuntimeException(e);
+            return new PaymentEvent(PaymentStatus.PAYMENT_REFUNDED, "Refund processed failed");
         }
     }
 }

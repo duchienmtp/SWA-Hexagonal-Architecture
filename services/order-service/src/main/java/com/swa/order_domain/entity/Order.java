@@ -31,7 +31,7 @@ public class Order extends AggregateRoot<OrderId> {
     // Mutable fields - can be changed via business logic
     private TrackingId trackingId;
     private OrderStatus orderStatus;
-    private List<String> failureMessages;
+    private String failureMessages;
 
     // Business logic methods
     public void validateOrder() {

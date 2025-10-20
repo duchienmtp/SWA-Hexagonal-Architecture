@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import com.swa.customer_application.ports.input.service.ICustomerService;
 import com.swa.kafka.avro.model.CreateUserBalanceFailedEventAvro;
 
-import static java.lang.String.format;
 
 @Service
 @Slf4j
@@ -25,14 +24,14 @@ public class CustomerConsumer {
     @KafkaListener(topics = "create-user-balance-failed-topic", groupId = "customer-service-group")
     public void consumeUserBalanceCreationFailedEvent(CreateUserBalanceFailedEventAvro event) {
         try {
-            log.info(format("Consuming the message from Topic:: %s", event));
+            log.info("Consuming the Message=[{}] from Topic=[{}]", event, "create-user-balance-failed-topic");
             // throw new RuntimeException("Simulated processing failure for testing retry
             // mechanism");
 
             _customerService.deleteCustomer(event.getCustomerId().toString());
 
         } catch (Exception e) {
-            log.error("Error processing message from Topic:: %s", event);
+            log.error("Error processing Message=[{}] from Topic=[{}]", event, "create-user-balance-failed-topic");
             throw new RuntimeException(e);
         }
     }

@@ -10,6 +10,7 @@ import com.swa.kafka.avro.model.*;
 import com.swa.order_application.ports.output.event.IEventPublisher;
 import com.swa.order_domain.entity.Customer;
 import com.swa.order_domain.entity.Order;
+import com.swa.order_domain.valueobject.CustomerId;
 import com.swa.order_infrastructure.order_messaging.mapper.OrderEventMapper;
 
 @Service
@@ -23,9 +24,9 @@ public class OrderProducer implements IEventPublisher {
         try {
             kafkaTemplate.send(topic, payload).whenComplete((result, ex) -> {
                 if (ex == null) {
-                    log.info("Sent message=[{}] with offset=[{}]",
+                    log.info("Sent message=[{}] to topic=[{}]",
                             payload,
-                            result.getRecordMetadata().offset());
+                            topic);
                 } else {
                     log.error("Unable to send message=[{}] due to: {}",
                             payload,
@@ -41,12 +42,19 @@ public class OrderProducer implements IEventPublisher {
     }
 
     public void sendOrderConfirmationEvent(Order order, Customer customer) {
-        OrderConfirmationEventAvro orderConfirmationEvent = orderEventMapper.mapToOrderConfirmationEvent(order, customer);
+        OrderConfirmationEventAvro orderConfirmationEvent = orderEventMapper.mapToOrderConfirmationEvent(order,
+                customer);
         publish("order-confirmation-topic", orderConfirmationEvent);
     }
 
     public void sendOrderPurchaseEvent(Order order, Customer customer) {
         OrderConfirmationEventAvro orderPurchaseEvent = orderEventMapper.mapToOrderConfirmationEvent(order, customer);
         publish("order-purchase-topic", orderPurchaseEvent);
+    }
+
+    public void sendRestaurantInventoryRollbackEvent(Order order, CustomerId customerId, String message) {
+        RestaurantInventoryRollbackEventAvro inventoryRollbackEvent = orderEventMapper
+                .mapToRestaurantInventoryRollbackEvent(order, customerId, message);
+        publish("restaurant-inventory-rollback-topic", inventoryRollbackEvent);
     }
 }

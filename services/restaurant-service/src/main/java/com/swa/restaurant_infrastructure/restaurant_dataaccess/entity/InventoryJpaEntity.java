@@ -1,5 +1,7 @@
 package com.swa.restaurant_infrastructure.restaurant_dataaccess.entity;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +15,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "inventories")
 public class InventoryJpaEntity {
@@ -20,18 +23,18 @@ public class InventoryJpaEntity {
     @EmbeddedId
     private InventoryId id;
 
-    private Double price;
+    private BigDecimal price;
 
     private Integer quantity;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) 
     @MapsId("restaurantId") // Maps to the restaurantId field in InventoryId
-    @JoinColumn(name = "restaurant_id")
+    @JoinColumn(name = "restaurant_id", nullable = false) 
     private RestaurantJpaEntity restaurant;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) 
     @MapsId("productId") // Maps to the productId field in InventoryId
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private ProductJpaEntity product;
 
     // Replace the standard @Builder with a custom builder implementation
@@ -43,7 +46,7 @@ public class InventoryJpaEntity {
     @NoArgsConstructor
     public static class InventoryJpaEntityBuilder {
         private InventoryId id;
-        private Double price;
+        private BigDecimal price;
         private Integer quantity;
         private RestaurantJpaEntity restaurant;
         private ProductJpaEntity product;
@@ -53,7 +56,7 @@ public class InventoryJpaEntity {
             return this;
         }
 
-        public InventoryJpaEntityBuilder price(Double price) {
+        public InventoryJpaEntityBuilder price(BigDecimal price) {
             this.price = price;
             return this;
         }

@@ -5,7 +5,7 @@ import com.swa.payment_domain.event.OrderConfirmationEvent;
 import com.swa.payment_domain.event.ProcessPaymentFailedEvent;
 
 public interface IPaymentApplicationService {
-    void handleOrderConfirmation(OrderConfirmationEvent event);
+    void handlePaymentProcess(OrderConfirmationEvent event);
     void createUserBalance(UserBalance userBalance);
     void handleRefundPayment(ProcessPaymentFailedEvent event);
 }

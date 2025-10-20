@@ -6,6 +6,8 @@ import com.swa.order_application.dto.CreateOrderCommand;
 import com.swa.order_application.dto.CreateOrderResponse;
 import com.swa.order_application.dto.TrackOrderQuery;
 import com.swa.order_application.dto.TrackOrderResponse;
+import com.swa.order_domain.event.OrderApprovalEvent;
+import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 
 public interface IOrderApplicationService {
     // UseCase: Create order
@@ -16,4 +18,8 @@ public interface IOrderApplicationService {
 
     // UseCase: Cancel order
     CancelOrderResponse cancelOrder(CancelOrderCommand command);
+
+    void cancelOrder(ProcessPaymentFailedEvent command);
+
+    void approveOrder(OrderApprovalEvent event);
 }

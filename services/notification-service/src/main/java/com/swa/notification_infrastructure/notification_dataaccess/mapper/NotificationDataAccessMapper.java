@@ -11,20 +11,21 @@ public class NotificationDataAccessMapper {
     // Domain → JPA (for saving)
     public NotificationEntity toJpaEntity(Notification notification) {
         return NotificationEntity.builder()
-            .id(notification.getId())
-            .type(notification.getType())
-            .notificationDate(notification.getNotificationDate())
-            .orderConfirmationEvent(notification.getOrderConfirmationEvent())
-            .build();
+                .id(notification.getId())
+                .type(notification.getType())
+                .notificationDate(notification.getNotificationDate())
+                .orderConfirmationEvent(notification.getOrderConfirmationEvent())
+                .build();
     }
-    
+
     // JPA → Domain (after loading)
     public Notification toDomain(NotificationEntity entity) {
-        return Notification.builder()
-            .id(entity.getId())
-            .type(entity.getType())
-            .notificationDate(entity.getNotificationDate())
-            .orderConfirmationEvent(entity.getOrderConfirmationEvent())
-            .build();
+        return entity == null ? null
+                : Notification.builder()
+                        .id(entity.getId())
+                        .type(entity.getType())
+                        .notificationDate(entity.getNotificationDate())
+                        .orderConfirmationEvent(entity.getOrderConfirmationEvent())
+                        .build();
     }
 }

@@ -7,7 +7,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.swa.kafka.avro.model.CreateUserBalanceFailedEventAvro;
-import com.swa.kafka.avro.model.OrderConfirmationEventAvro;
 import com.swa.kafka.avro.model.OrderPrepareEventAvro;
 import com.swa.kafka.avro.model.ProcessPaymentFailedEventAvro;
 import com.swa.payment_application.ports.output.IEventPublisher;
@@ -28,9 +27,9 @@ public class PaymentProducer implements IEventPublisher {
         try {
             kafkaTemplate.send(topic, payload).whenComplete((result, ex) -> {
                 if (ex == null) {
-                    log.info("Sent message=[{}] with offset=[{}]",
+                    log.info("Sent message=[{}] to topic=[{}]",
                             payload,
-                            result.getRecordMetadata().offset());
+                            topic);
                 } else {
                     log.error("Unable to send message=[{}] due to: {}",
                             payload,
@@ -47,21 +46,19 @@ public class PaymentProducer implements IEventPublisher {
 
     @Override
     public void publishPaymentSuccess(OrderConfirmationEvent event, PaymentEvent paymentEvent) {
-        OrderConfirmationEventAvro orderConfirmationEventAvro = paymentEventMapper
-                .toOrderConfirmationEventAvro(event);
         String topic = paymentEvent.getPaymentStatus().getTopic();
         
-        log.info("Payment processed successfully for order: {}", orderConfirmationEventAvro.getOrderId());
+        log.info("Payment processed successfully for order: {}", event.getOrderId());
         OrderPrepareEventAvro orderPrepareEventAvro = paymentEventMapper
-                .toOrderPrepareEventAvro(orderConfirmationEventAvro, paymentEvent);
+                .toOrderPrepareEventAvro(event, paymentEvent);
         publish(topic, orderPrepareEventAvro);
     }
     
     @Override
     public void publishPaymentFailure(OrderConfirmationEvent event, PaymentEvent paymentEvent) {
         String topic = paymentEvent.getPaymentStatus().getTopic();
-        OrderConfirmationEventAvro orderConfirmationEventAvro = paymentEventMapper
-                .toOrderConfirmationEventAvro(event);
+        ProcessPaymentFailedEventAvro orderConfirmationEventAvro = paymentEventMapper
+                .toProcessPaymentFailedEventAvro(event, paymentEvent);
         
         log.error("Payment failed for order: {}", orderConfirmationEventAvro.getOrderId());
         publish(topic, orderConfirmationEventAvro);

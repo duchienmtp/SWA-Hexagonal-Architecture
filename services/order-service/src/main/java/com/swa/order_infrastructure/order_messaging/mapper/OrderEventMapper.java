@@ -8,6 +8,7 @@ import com.swa.kafka.avro.model.*;
 import com.swa.order_domain.entity.Customer;
 import com.swa.order_domain.entity.Order;
 import com.swa.order_domain.entity.OrderItem;
+import com.swa.order_domain.event.OrderApprovalEvent;
 import com.swa.order_domain.event.OrderConfirmationEvent;
 import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 import com.swa.order_domain.valueobject.CustomerId;
@@ -24,6 +25,7 @@ public class OrderEventMapper {
 
         return OrderConfirmationEventAvro.newBuilder()
                 .setOrderId(order.getId().getValue().toString())
+                .setRestaurantId(order.getRestaurantId().getValue().toString())
                 .setTotalAmount(order.getPrice().getAmount().toPlainString())
                 .setCustomer(avroCustomer)
                 .setItems(avroItems)
@@ -60,6 +62,28 @@ public class OrderEventMapper {
                 .orderId(OrderId.toOrderId(avro.getOrderId()))
                 .customerId(CustomerId.toCustomerId(avro.getCustomerId()))
                 .message(avro.getMessage())
+                .build();
+    }
+
+    public OrderApprovalEvent toOrderApprovalEvent(OrderApprovalEventAvro avro) {
+        return OrderApprovalEvent.builder()
+                .orderId(OrderId.toOrderId(avro.getOrderId()))
+                .customerId(CustomerId.toCustomerId(avro.getCustomerId()))
+                .message(avro.getMessage())
+                .build();
+    }
+
+    public RestaurantInventoryRollbackEventAvro mapToRestaurantInventoryRollbackEvent(Order order, CustomerId customerId, String message) {
+        var avroItems = order.getItems().stream()
+                .map(this::toOrderItemAvro)
+                .collect(Collectors.toList());
+
+        return RestaurantInventoryRollbackEventAvro.newBuilder()
+                .setOrderId(order.getId().getValue().toString())
+                .setRestaurantId(order.getRestaurantId().getValue().toString())
+                .setCustomerId(customerId.getValue().toString())
+                .setMessage(message)
+                .setItems(avroItems)
                 .build();
     }
 }

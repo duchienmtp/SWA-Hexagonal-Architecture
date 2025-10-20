@@ -7,6 +7,8 @@ import com.swa.order_application.ports.output.event.IEventPublisher;
 import com.swa.order_application.ports.output.repository.IOrderRepository;
 import com.swa.order_application.ports.output.service.ICustomerFeignService;
 import com.swa.order_domain.entity.*;
+import com.swa.order_domain.event.OrderApprovalEvent;
+import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 import com.swa.order_domain.exception.OrderDomainException;
 import com.swa.order_domain.service.OrderDomainService;
 import com.swa.order_domain.valueobject.OrderId;
@@ -14,6 +16,8 @@ import com.swa.order_infrastructure.order_messaging.producer.OrderRabbitMQPublis
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +38,8 @@ public class OrderApplicationService implements IOrderApplicationService {
     public CreateOrderResponse createOrder(CreateOrderCommand command) {
         try {
             var customerResponse = customerClient.findCustomerById(command.getCustomerId().toString())
-                .orElseThrow(() -> new OrderDomainException("Cannot create order:: No customer exists with the provided ID"));
+                    .orElseThrow(() -> new OrderDomainException(
+                            "Cannot create order:: No customer exists with the provided ID"));
 
             var customer = customerResponse.getCustomer();
 
@@ -52,7 +57,7 @@ public class OrderApplicationService implements IOrderApplicationService {
 
             // RabbitMQ
             // orderRabbitMQPublisher.sendOrderConfirmationMessage(
-            //     orderEventMapper.toOrderConfirmationEvent(savedOrder, customer)
+            // orderEventMapper.toOrderConfirmationEvent(savedOrder, customer)
             // );
 
             return orderDataMapper.toCreateOrderResponseDTO(savedOrder, "Order created successfully", 201);
@@ -66,12 +71,13 @@ public class OrderApplicationService implements IOrderApplicationService {
     public TrackOrderResponse trackOrder(TrackOrderQuery query) {
         try {
             var customerResponse = customerClient.findCustomerById(query.getCustomerId().toString())
-            .orElseThrow(() -> new OrderDomainException("Cannot track order:: No customer exists with the provided ID"));
+                    .orElseThrow(() -> new OrderDomainException(
+                            "Cannot track order:: No customer exists with the provided ID"));
 
             var response = _orderRepository.findById(new OrderId(query.getOrderId()));
 
             var trackingOrder = orderDataMapper.toTrackingOrderDTO(response.get());
-            
+
             return orderDataMapper.toTrackOrderResponseDTO(trackingOrder, "Order tracked successfully", 200);
         } catch (Exception e) {
             log.error("Failed to retrieve order: {}", e.getMessage());
@@ -83,16 +89,71 @@ public class OrderApplicationService implements IOrderApplicationService {
     public CancelOrderResponse cancelOrder(CancelOrderCommand command) {
         try {
             var customerResponse = customerClient.findCustomerById(command.getCustomerId().toString())
-            .orElseThrow(() -> new OrderDomainException("Cannot cancel order:: No customer exists with the provided ID"));
+                    .orElseThrow(() -> new OrderDomainException(
+                            "Cannot cancel order:: No customer exists with the provided ID"));
 
             var response = _orderRepository.cancelOrder(new OrderId(command.getOrderId()));
 
             var trackingOrder = orderDataMapper.toTrackingOrderDTO(response);
-            
+
             return orderDataMapper.toCancelOrderResponseDTO(trackingOrder, "Order cancelled successfully", 200);
         } catch (Exception e) {
             log.error("Failed to cancel order: {}", e.getMessage());
             throw new OrderDomainException("Failed to cancel order", e);
+        }
+    }
+
+    @Override
+    public void cancelOrder(ProcessPaymentFailedEvent command) {
+        try {
+            var customerResponse = customerClient.findCustomerById(command.getCustomerId().getValue().toString())
+                    .orElseThrow(() -> new OrderDomainException(
+                            "Cannot cancel order:: No customer exists with the provided ID"));
+
+            _orderRepository.cancelOrder(command);
+
+        } catch (Exception e) {
+            log.error("Failed to cancel order: {}", e.getMessage());
+            throw new OrderDomainException("Failed to cancel order", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void approveOrder(OrderApprovalEvent command) {
+        Optional<Order> order = Optional.empty();
+
+        try {
+            order = _orderRepository.findById(command.getOrderId());
+
+            if (order.isEmpty()) {
+                log.error("Cannot approve order: Order with ID {} not found", command.getOrderId().getValue());
+                _eventPublisher.sendRestaurantInventoryRollbackEvent(order.get(), command.getCustomerId(),
+                        "Order with ID " + command.getOrderId().getValue() + " not found");
+                return;
+            }
+
+            String customerId = command.getCustomerId().getValue().toString();
+            var customerResponse = customerClient.findCustomerById(customerId);
+
+            if (customerResponse.isEmpty()) {
+                log.error("Cannot approve order: No customer exists with ID {}", customerId);
+                _eventPublisher.sendRestaurantInventoryRollbackEvent(order.get(), command.getCustomerId(),
+                        "No customer exists with ID " + customerId);
+                return;
+            }
+
+            _orderRepository.approveOrder(command);
+            log.info("Order with ID {} successfully approved",
+                    command.getOrderId().getValue());
+
+        } catch (Exception e) {
+            log.error("Failed to approve order: {}", e.getMessage(), e);
+
+            if (order.isPresent()) {
+                _eventPublisher.sendRestaurantInventoryRollbackEvent(order.get(), command.getCustomerId(),
+                        "Exception during order approval: " + e.getMessage());
+            }
         }
     }
 }

@@ -8,11 +8,12 @@ import org.springframework.retry.annotation.Backoff;
 
 import com.swa.kafka.avro.model.CreateUserBalanceEventAvro;
 import com.swa.kafka.avro.model.OrderConfirmationEventAvro;
-
+import com.swa.kafka.avro.model.ProcessPaymentFailedEventAvro;
 import com.swa.payment_application.ports.input.IPaymentApplicationService;
 
 import com.swa.payment_domain.entity.UserBalance;
 import com.swa.payment_domain.event.OrderConfirmationEvent;
+import com.swa.payment_domain.event.ProcessPaymentFailedEvent;
 import com.swa.payment_domain.valueobject.CustomerId;
 import com.swa.payment_domain.valueobject.Money;
 import com.swa.payment_infrastructure.payment_messaging.mapper.PaymentEventMapper;
@@ -37,13 +38,13 @@ public class PaymentConsumer {
     @KafkaListener(topics = "order-purchase-topic", groupId = "payment-service-group")
     public void consumeOrderConfirmationNotifications(OrderConfirmationEventAvro event) {
         try {
-            log.info(format("Consuming the message from order-purchase-topic Topic:: %s", event));
+            log.info(format("Consuming the Message=[{}] from Topic=[{}]", event, "order-purchase-topic"));
             // throw new RuntimeException("Simulated processing failure for testing retry
             // mechanism");
 
             OrderConfirmationEvent orderConfirmationEvent = paymentEventMapper.toOrderConfirmationEvent(event);
 
-            _paymentApplicationService.handleOrderConfirmation(orderConfirmationEvent);
+            _paymentApplicationService.handlePaymentProcess(orderConfirmationEvent);
 
             // var customerName = event.getCustomer().getFullName();
             // _emailService.sendOrderConfirmationEmail(
@@ -52,12 +53,11 @@ public class PaymentConsumer {
             // new BigDecimal(orderPurchaseEvent.getTotalAmount()),
             // OrderId.of(UUID.fromString(orderPurchaseEvent.getOrderId())));
         } catch (Exception e) {
-            log.error("Error processing message from order-purchase-topic Topic:: %s", event);
+            log.error("Error processing Message=[{}] from Topic=[{}]", event, "order-purchase-topic");
             throw new RuntimeException(e);
         }
     }
 
-    // ## Listener for the DLT topic ##
     @DltHandler
     @KafkaListener(topics = "order-purchase-topic.DLT", groupId = "payment-service-group")
     public void consumeDltMessage(OrderConfirmationEventAvro event) {
@@ -68,7 +68,7 @@ public class PaymentConsumer {
     @RetryableTopic(attempts = "#{${spring.kafka.listener.common-error-handler.max-attempts}}", backoff = @Backoff(delayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.initial-interval}}", multiplierExpression = "#{${spring.kafka.listener.common-error-handler.back-off.multiplier}}", maxDelayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.max-interval}}"), dltTopicSuffix = "${spring.kafka.listener.dead-letter-publishing.topic-suffix}", topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE, autoCreateTopics = "true", kafkaTemplate = "kafkaTemplate")
     @KafkaListener(topics = "create-user-balance-topic", groupId = "payment-service-group")
     public void consumerCreateUserBalance(CreateUserBalanceEventAvro event) {
-        log.info(format("Consuming the message from Topic:: %s", event));
+        log.info(format("Consuming the Message=[{}] from Topic=[{}]", event, "create-user-balance-topic"));
 
         UserBalance userBalance = null;
         try {
@@ -84,15 +84,39 @@ public class PaymentConsumer {
 
             log.info("User balance created successfully for customer ID: {}", event.getCustomerId());
         } catch (Exception e) {
-            log.error("Error processing message from Topic:: %s", event);
+            log.error("Error processing Message=[{}] from Topic=[{}]", event, "create-user-balance-topic");
             throw new RuntimeException(e);
         }
     }
 
-    // ## Listener for the DLT topic ##
     @DltHandler
     @KafkaListener(topics = "create-user-balance-topic.DLT", groupId = "payment-service-group")
     public void consumeCreateUserBalanceDltMessage(CreateUserBalanceEventAvro event) {
+
+        log.error("Received message from DLT topic:: %s", event);
+    }
+
+    @RetryableTopic(attempts = "#{${spring.kafka.listener.common-error-handler.max-attempts}}", backoff = @Backoff(delayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.initial-interval}}", multiplierExpression = "#{${spring.kafka.listener.common-error-handler.back-off.multiplier}}", maxDelayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.max-interval}}"), dltTopicSuffix = "${spring.kafka.listener.dead-letter-publishing.topic-suffix}", topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE, autoCreateTopics = "true", kafkaTemplate = "kafkaTemplate")
+    @KafkaListener(topics = "order-prepare-failed-topic", groupId = "payment-service-group")
+    public void consumeRefundPayment(ProcessPaymentFailedEventAvro event) {
+        try {
+            log.info(format("Consuming the Message=[{}] from Topic=[{}]", event, "order-prepare-failed-topic"));
+            // throw new RuntimeException("Simulated processing failure for testing retry
+            // mechanism");
+
+            ProcessPaymentFailedEvent processPaymentFailedEvent = paymentEventMapper.toProcessPaymentFailedEvent(event);
+
+            _paymentApplicationService.handleRefundPayment(processPaymentFailedEvent);
+
+        } catch (Exception e) {
+            log.error("Error processing Message=[{}] from Topic=[{}]", event, "order-prepare-failed-topic");
+            throw new RuntimeException(e);
+        }
+    }
+
+    @DltHandler
+    @KafkaListener(topics = "order-prepare-failed-topic.DLT", groupId = "payment-service-group")
+    public void consumeDltMessage(ProcessPaymentFailedEventAvro event) {
 
         log.error("Received message from DLT topic:: %s", event);
     }

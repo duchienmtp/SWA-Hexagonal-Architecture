@@ -28,15 +28,13 @@ public class CustomerRepository implements ICustomerRepository {
     @Override
     public List<Customer> findAll() {
         var customers = customerJpaRepository.findAll();
-        var formattedDomainEntity = customers.stream().map(customerDataAccessMapper::toCustomer).toList();
-        return formattedDomainEntity;
+        return customers.stream().map(customerDataAccessMapper::toCustomer).toList();
     }
 
     @Override
     public Optional<Customer> findById(String id) {
-        var customerEntity = customerJpaRepository.findById(id);
-        var formattedDomainEntity = customerDataAccessMapper.toCustomer(customerEntity.get());
-        return Optional.of(formattedDomainEntity);  
+        return customerJpaRepository.findById(id)
+                .map(customerDataAccessMapper::toCustomer);
     }
 
     @Override

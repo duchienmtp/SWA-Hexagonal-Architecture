@@ -19,7 +19,7 @@ public class OrderItemDataAccessMapper {
     }
     
     public static OrderItem toDomain(OrderItemJpaEntity item) {
-        return OrderItem.builder()
+        return item == null ? null : OrderItem.builder()
             .orderId(OrderId.of(item.getOrder().getId()))
             .productId(ProductId.of(item.getProductId()))
             .price(new Money(item.getPrice()))

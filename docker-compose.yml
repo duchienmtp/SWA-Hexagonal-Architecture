@@ -5,9 +5,10 @@ services:
     environment:
       POSTGRES_USER: kagami
       POSTGRES_PASSWORD: kagami
-      POSTGRES_DB: order-service, payment-service, restaurant-service
+      POSTGRES_DB: postgres  # Set a default database
     volumes:
       - postgres_db_data:/data/postgres
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:

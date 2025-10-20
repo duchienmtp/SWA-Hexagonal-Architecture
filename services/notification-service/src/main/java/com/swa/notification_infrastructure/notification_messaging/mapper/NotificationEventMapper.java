@@ -16,6 +16,7 @@ import com.swa.notification_domain.valueobject.Money;
 import com.swa.notification_domain.valueobject.NotificationTypes;
 import com.swa.notification_domain.valueobject.OrderId;
 import com.swa.notification_domain.valueobject.ProductId;
+import com.swa.notification_domain.valueobject.RestaurantId;
 import com.swa.notification_infrastructure.notification_dataaccess.entity.NotificationEntity;
 
 @Component
@@ -23,6 +24,7 @@ public class NotificationEventMapper {
     public OrderConfirmationEvent toOrderConfirmationEvent(OrderConfirmationEventAvro orderConfirmationEventAvro) {
         return OrderConfirmationEvent.builder()
                 .orderId(OrderId.toOrderId(orderConfirmationEventAvro.getOrderId()))
+                .restaurantId(RestaurantId.toRestaurantId(orderConfirmationEventAvro.getRestaurantId()))
                 .totalAmount(new com.swa.notification_domain.valueobject.Money(new java.math.BigDecimal(orderConfirmationEventAvro.getTotalAmount())))
                 .customer(toCustomer(orderConfirmationEventAvro.getCustomer()))
                 .items(orderConfirmationEventAvro.getItems().stream()

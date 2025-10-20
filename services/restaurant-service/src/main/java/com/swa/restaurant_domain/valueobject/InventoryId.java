@@ -13,6 +13,10 @@ public class InventoryId {
         return new InventoryId(restaurantId, productId);
     }
 
+    public static InventoryId of(UUID restaurantId, UUID productId) {
+        return new InventoryId(RestaurantId.of(restaurantId), ProductId.of(productId));
+    }
+
     public static InventoryId toInventoryId(String restaurantId, String productId) {
         return new InventoryId(RestaurantId.of(UUID.fromString(restaurantId)),
                 ProductId.of(UUID.fromString(productId)));

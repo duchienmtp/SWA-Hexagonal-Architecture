@@ -10,13 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import com.swa.kafka.avro.model.OrderApprovalEventAvro;
 import com.swa.kafka.avro.model.ProcessPaymentFailedEventAvro;
-import com.swa.order_application.dto.CancelOrderCommand;
 import com.swa.order_application.ports.input.service.IOrderApplicationService;
+import com.swa.order_domain.event.OrderApprovalEvent;
 import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 import com.swa.order_infrastructure.order_messaging.mapper.OrderEventMapper;
 
-import static java.lang.String.format;
 
 @Service
 @Slf4j
@@ -29,18 +29,14 @@ public class OrderConsumer {
     @KafkaListener(topics = "order-purchase-failed-topic", groupId = "order-service-group")
     public void consumeProcessPaymentFailedEvent(ProcessPaymentFailedEventAvro paymentFailedEventAvro) {
         try {
-            log.info(format("Consuming the message from Topic:: %s", paymentFailedEventAvro));
+            log.info("Consuming the Message=[{}] from Topic=[{}]", paymentFailedEventAvro, "order-purchase-failed-topic");
             // throw new RuntimeException("Simulated processing failure for testing retry
             // mechanism");
             ProcessPaymentFailedEvent event = orderEventMapper.toProcessPaymentFailedEvent(paymentFailedEventAvro);
-            CancelOrderCommand cancelOrderCommand = CancelOrderCommand.builder()
-                    .orderId(event.getOrderId().getValue())
-                    .customerId(event.getCustomerId().getValue())
-                    .build();
-           _orderApplicationService.cancelOrder(cancelOrderCommand);
-           log.info("Cancelled order with ID: %s", cancelOrderCommand.getOrderId());
+           _orderApplicationService.cancelOrder(event);
+           log.info("Cancelled order with ID: %s", event.getOrderId());
         } catch (Exception e) {
-            log.error("Error processing message from Topic:: %s", paymentFailedEventAvro);
+            log.error("Error processing Message=[{}] from Topic=[{}]", paymentFailedEventAvro, "order-purchase-failed-topic");
             throw new RuntimeException(e);
         }
     }
@@ -51,5 +47,28 @@ public class OrderConsumer {
     public void consumeProcessPaymentFailedEventDltMessage(ProcessPaymentFailedEventAvro paymentFailedEventAvro) {
 
         log.error("Received message from DLT topic:: %s", paymentFailedEventAvro);
+    }
+
+    @RetryableTopic(attempts = "#{${spring.kafka.listener.common-error-handler.max-attempts}}", backoff = @Backoff(delayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.initial-interval}}", multiplierExpression = "#{${spring.kafka.listener.common-error-handler.back-off.multiplier}}", maxDelayExpression = "#{${spring.kafka.listener.common-error-handler.back-off.max-interval}}"), dltTopicSuffix = "${spring.kafka.listener.dead-letter-publishing.topic-suffix}", topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE, autoCreateTopics = "true", kafkaTemplate = "kafkaTemplate")
+    @KafkaListener(topics = "order-prepare-success-topic", groupId = "order-service-group")
+    public void consumeOrderPrepareSuccessEvent(OrderApprovalEventAvro orderApprovalEventAvro) {
+        try {
+            log.info("Consuming the Message=[{}] from Topic=[{}]", orderApprovalEventAvro, "order-prepare-success-topic");
+            // throw new RuntimeException("Simulated processing failure for testing retry
+            // mechanism");
+            OrderApprovalEvent event = orderEventMapper.toOrderApprovalEvent(orderApprovalEventAvro);
+           _orderApplicationService.approveOrder(event);
+           log.info("Cancelled order with ID: %s", event.getOrderId());
+        } catch (Exception e) {
+            log.error("Error processing Message=[{}] from Topic=[{}]", orderApprovalEventAvro, "order-prepare-success-topic");
+            throw new RuntimeException(e);
+        }
+    }
+
+    @DltHandler
+    @KafkaListener(topics = "order-prepare-success-topic.DLT", groupId = "orderServiceGroupDltGroup")
+    public void consumeOrderPrepareSuccessEventDltMessage(OrderApprovalEventAvro orderApprovalEventAvro) {
+
+        log.error("Received message from DLT topic:: %s", orderApprovalEventAvro);
     }
 }

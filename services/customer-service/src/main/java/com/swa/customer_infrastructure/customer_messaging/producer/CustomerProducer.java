@@ -22,9 +22,9 @@ public class CustomerProducer implements IEventPublisher {
         try {
             kafkaTemplate.send(topic, payload).whenComplete((result, ex) -> {
                 if (ex == null) {
-                    log.info("Sent message=[{}] with offset=[{}]",
+                    log.info("Sent message=[{}] to topic=[{}]",
                             payload,
-                            result.getRecordMetadata().offset());
+                            topic);
                 } else {
                     log.error("Unable to send message=[{}] due to: {}",
                             payload,

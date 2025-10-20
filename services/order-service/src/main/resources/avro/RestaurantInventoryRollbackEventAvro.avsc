@@ -1,0 +1,26 @@
+{
+  "namespace": "com.swa.kafka.avro.model",
+  "type": "record",
+  "name": "RestaurantInventoryRollbackEventAvro",
+  "fields": [
+    { "name": "orderId", "type": "string" },
+    { "name": "restaurantId", "type": "string" },
+    { "name": "customerId", "type": "string" },
+    { "name": "message", "type": "string" },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItemAvro",
+          "fields": [
+            { "name": "productId", "type": "string" },
+            { "name": "price", "type": "string" },
+            { "name": "quantity", "type": "int" }
+          ]
+        }
+      }
+    }
+  ]
+}

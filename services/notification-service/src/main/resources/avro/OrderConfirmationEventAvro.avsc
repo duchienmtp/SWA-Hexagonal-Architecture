@@ -4,6 +4,7 @@
   "name": "OrderConfirmationEventAvro",
   "fields": [
     { "name": "orderId", "type": "string" },
+    { "name": "restaurantId", "type": "string" },
     { "name": "totalAmount", "type": "string" },
     {
       "name": "customer",

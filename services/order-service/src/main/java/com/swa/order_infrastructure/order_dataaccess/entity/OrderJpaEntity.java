@@ -1,7 +1,10 @@
 package com.swa.order_infrastructure.order_dataaccess.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
+
+import org.springframework.data.annotation.CreatedDate;
 
 import com.swa.order_domain.valueobject.OrderStatus;
 
@@ -12,6 +15,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -42,8 +46,14 @@ public class OrderJpaEntity {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    private BigDecimal totalAmount;
+    private BigDecimal price;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private String failureMessages;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdDate;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderItemJpaEntity> items;
 }

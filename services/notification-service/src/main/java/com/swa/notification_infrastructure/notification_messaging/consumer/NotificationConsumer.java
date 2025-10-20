@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import static java.lang.String.format;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -27,13 +25,13 @@ public class NotificationConsumer {
     @KafkaListener(topics = "order-confirmation-topic", groupId = "orderNotificationGroup")
     public void consumeOrderConfirmationNotifications(OrderConfirmationEventAvro orderConfirmationEvent) {
         try {
-            log.info(format("Consuming the message from Topic:: %s", orderConfirmationEvent));
+            log.info("Consuming the Message=[{}] from Topic=[{}]", orderConfirmationEvent, "order-confirmation-topic");
             // throw new RuntimeException("Simulated processing failure for testing retry
             // mechanism");
             OrderConfirmationEvent event = notificationEventMapper.toOrderConfirmationEvent(orderConfirmationEvent);
             _notificationApplicationService.sendOrderConfirmationNotification(event);
         } catch (Exception e) {
-            log.error("Error processing message from Topic:: %s", orderConfirmationEvent);
+            log.error("Error processing Message=[{}] from Topic=[{}]", orderConfirmationEvent, "order-confirmation-topic");
             throw new RuntimeException(e);
         }
     }

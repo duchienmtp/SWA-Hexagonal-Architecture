@@ -2,6 +2,7 @@ package com.swa.restaurant_domain.entity;
 
 import com.swa.restaurant_domain.exception.RestaurantDomainException;
 import com.swa.restaurant_domain.valueobject.InventoryId;
+import com.swa.restaurant_domain.valueobject.Money;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -49,10 +49,8 @@ public class PaymentRepository implements IPaymentRepository {
     @Override
     public Optional<UserBalance> findUserBalanceById(CustomerId customerId) {
         // Implementation for finding UserBalance by customerId
-        UserBalance userBalance = _userBalanceJpaRepository.findById(customerId.getValue())
-                .map(userBalanceDataAccessMapper::toDomain)
-                .orElseThrow(() -> new RuntimeException("UserBalance not found"));
-        return Optional.of(userBalance);
+        return _userBalanceJpaRepository.findById(customerId.getValue())
+                .map(userBalanceDataAccessMapper::toDomain);
     }
 
     @Override

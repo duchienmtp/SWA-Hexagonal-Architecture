@@ -3,6 +3,8 @@ package com.swa.order_application.ports.output.repository;
 import java.util.Optional;
 
 import com.swa.order_domain.entity.Order;
+import com.swa.order_domain.event.OrderApprovalEvent;
+import com.swa.order_domain.event.ProcessPaymentFailedEvent;
 import com.swa.order_domain.valueobject.OrderId;
 
 public interface IOrderRepository {
@@ -14,4 +16,8 @@ public interface IOrderRepository {
 
     // Cancel order
     Order cancelOrder(OrderId orderId);
+
+    void cancelOrder(ProcessPaymentFailedEvent event);
+
+    void approveOrder(OrderApprovalEvent event);
 }
