@@ -13,12 +13,6 @@ public class OrderDomainService {
         // 2. Validate business rules
         order.validateOrder();
         
-        // 3. Any other domain logic that involves multiple aggregates
-        // For example:
-        // - Check inventory
-        // - Calculate pricing
-        // - Apply promotions
-        
         return order;
     }
 }

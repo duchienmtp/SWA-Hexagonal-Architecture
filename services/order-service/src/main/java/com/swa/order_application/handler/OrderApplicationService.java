@@ -4,6 +4,7 @@ import com.swa.order_application.dto.*;
 import com.swa.order_application.mapper.OrderDataMapper;
 import com.swa.order_application.ports.input.service.IOrderApplicationService;
 import com.swa.order_application.ports.output.event.IEventPublisher;
+import com.swa.order_application.ports.output.event.IRabbitMQEventPublisher;
 import com.swa.order_application.ports.output.repository.IOrderRepository;
 import com.swa.order_application.ports.output.service.ICustomerFeignService;
 import com.swa.order_domain.entity.*;
@@ -30,7 +31,7 @@ public class OrderApplicationService implements IOrderApplicationService {
     private final OrderDataMapper orderDataMapper;
     private final OrderDomainService orderDomainService;
     private final ICustomerFeignService customerClient;
-    private final OrderRabbitMQPublisher orderRabbitMQPublisher;
+    private final IRabbitMQEventPublisher _rabbitMQEventPublisher;
     private final IEventPublisher _eventPublisher;
 
     @Override
@@ -51,14 +52,12 @@ public class OrderApplicationService implements IOrderApplicationService {
             Order savedOrder = _orderRepository.save(order);
 
             // Kafka
-            _eventPublisher.sendOrderConfirmationEvent(savedOrder, customer);
+            // _eventPublisher.sendOrderConfirmationEvent(savedOrder, customer);
 
-            _eventPublisher.sendOrderPurchaseEvent(savedOrder, customer);
+            // _eventPublisher.sendOrderPurchaseEvent(savedOrder, customer);
 
             // RabbitMQ
-            // orderRabbitMQPublisher.sendOrderConfirmationMessage(
-            // orderEventMapper.toOrderConfirmationEvent(savedOrder, customer)
-            // );
+            _rabbitMQEventPublisher.sendOrderConfirmationMessage(savedOrder, customer);
 
             return orderDataMapper.toCreateOrderResponseDTO(savedOrder, "Order created successfully", 201);
         } catch (Exception e) {

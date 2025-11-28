@@ -17,17 +17,17 @@ spring:
       common-error-handler:
         enabled: true
         # Specifies that the DLT should be used after retries are exhausted
-        dlt-enabled: true 
+        dlt-enabled: true
         # Defines the retry behavior
         back-off:
           # Start with a 1-second delay
-          initial-interval: 1000 
+          initial-interval: 1000
           # Double the delay for each subsequent retry
           multiplier: 2.0
           # Set a maximum delay of 10 seconds
           max-interval: 10000
         # Total attempts = 1 initial + 3 retries
-        max-attempts: 4 
+        max-attempts: 4
         # Specify exceptions that should NOT be retried (e.g., bad data)
         not-retryable-exceptions:
           - org.springframework.messaging.converter.MessageConversionException
@@ -77,13 +77,15 @@ spring:
       order-created-key.dlx: "order.created.dlx"
     listener:
       simple:
+        # acknowledge-mode: manual # Changed from auto to manual for better control
         acknowledge-mode: auto
         retry:
           enabled: true
-          max-attempts: 5 
-          initial-interval: 2000ms 
-          multiplier: 2.0 
-          max-interval: 10000ms 
+          max-attempts: 3 # Reduced for faster demonstration
+          initial-interval: 1000 # milliseconds
+          multiplier: 2.0
+          max-interval: 5000 # milliseconds
+        # prefetch: 1 # Process one message at a time for better distribution
 
 management:
   endpoints:

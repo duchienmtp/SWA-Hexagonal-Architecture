@@ -57,6 +57,14 @@ public class NotificationEventMapper {
                 .build();
     }
 
+    public NotificationEntity toNotificationEntity(OrderConfirmationEvent orderConfirmationEvent) {
+        return NotificationEntity.builder()
+                .type(NotificationTypes.ORDER_CONFIRMATION)
+                .notificationDate(LocalDateTime.now())
+                .orderConfirmationEvent(orderConfirmationEvent)
+                .build();
+    }
+
     public Notification toNotification(OrderConfirmationEventAvro event) {
         return Notification.builder()
                 .type(NotificationTypes.ORDER_CONFIRMATION)

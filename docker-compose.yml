@@ -237,7 +237,6 @@ services:
   notification-service:
     build: 
       context: ./services/notification-service
-    container_name: notification-service
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
@@ -245,7 +244,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8082
     ports:
-      - "8040:8040"
+      - "8040-8045:8040" 
     networks:
       - microservices-net
     depends_on:

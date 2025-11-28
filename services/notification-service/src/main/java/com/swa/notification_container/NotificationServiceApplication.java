@@ -3,6 +3,7 @@ package com.swa.notification_container;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
@@ -15,6 +16,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoRepositories(basePackages = "com.swa.notification_infrastructure.notification_dataaccess.repository")
 @EntityScan(basePackages = "com.swa.notification_infrastructure.notification_dataaccess.entity")
 @EnableKafka
+@EnableRetry
 public class NotificationServiceApplication {
 
 	public static void main(String[] args) {
